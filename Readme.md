@@ -62,7 +62,7 @@ To get started, simply clone the repo and initialize submodules:
 
 ```bash
 git clone https://github.com/elesbb/avnc-custom.git
-cd avnc
+cd avnc-custom
 git submodule update --init --depth 1
 ```
 
