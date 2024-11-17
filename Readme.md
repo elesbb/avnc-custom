@@ -21,6 +21,18 @@
 - VNC Repeater support
 - Clipboard Sync with server
 
+### Custom ELESBB features - All features hard coded. Did not a preference options for them
+- Added stylus hover buffer. Stylus must move a set distance before moving remote cursor. Useful for hovering over items and having their tooltip shown on the remote machine.
+- Added stylus button scroll. When the stylus primary button is pressed, the content will scroll.
+- Added fling remote scrolling when primary stylus button is pressed. Fling with scroll remote content.
+- Added double tap and fling remote scrolling. When you double tap with your finger and fling, the remote content will be scrolled.
+- Added fling scrolling canceling when a touch by finger or stylus is detected.
+- Added primary stylus button equals right click on remote client. Disabled long click with stylus.
+- Added custom gesture detector to enable tuning of gesture listener.
+- Fixed issue on my Samsung Tab S9+ where Alt+F4 was not sent to the remote client. See https://github.com/gujjwal00/avnc/issues/258
+- Fixed issue on my Samsung Tab S9+ where Ctrl+Shift was not sent to remote client. See https://github.com/gujjwal00/avnc/issues/258
+- Adjusted swipe sensitivity to allow for more fine tuning.
+
 [<img src="https://fdroid.gitlab.io/artwork/badge/get-it-on.png" alt="Get it on F-Droid" height="80">](https://f-droid.org/packages/com.gaurav.avnc/)
 [<img src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" alt="Get it on Play Store" height="80">](https://play.google.com/store/apps/details?id=com.gaurav.avnc)
 
