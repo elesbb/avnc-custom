@@ -61,7 +61,7 @@ Tools required:
 To get started, simply clone the repo and initialize submodules:
 
 ```bash
-git clone https://github.com/gujjwal00/avnc.git
+git clone https://github.com/elesbb/avnc-custom.git
 cd avnc
 git submodule update --init --depth 1
 ```
