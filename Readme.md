@@ -21,7 +21,7 @@
 - VNC Repeater support
 - Clipboard Sync with server
 
-### Custom ELESBB features - All features hard coded. Did not a preference options for them
+### Custom ELESBB features - All features hard coded. Did not add preference options for them
 - Added stylus hover buffer. Stylus must move a set distance before moving remote cursor. Useful for hovering over items and having their tooltip shown on the remote machine.
 - Added stylus button scroll. When the stylus primary button is pressed, the content will scroll.
 - Added fling remote scrolling when primary stylus button is pressed. Fling with scroll remote content.
