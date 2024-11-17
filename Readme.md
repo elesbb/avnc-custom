@@ -33,6 +33,8 @@
 - Fixed issue on my Samsung Tab S9+ where Ctrl+Shift was not sent to remote client. See https://github.com/gujjwal00/avnc/issues/258
 - Adjusted swipe sensitivity to allow for more fine tuning.
 
+Get ORIGINAL unmodified app below.
+
 [<img src="https://fdroid.gitlab.io/artwork/badge/get-it-on.png" alt="Get it on F-Droid" height="80">](https://f-droid.org/packages/com.gaurav.avnc/)
 [<img src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" alt="Get it on Play Store" height="80">](https://play.google.com/store/apps/details?id=com.gaurav.avnc)
 
