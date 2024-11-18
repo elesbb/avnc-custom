@@ -32,6 +32,7 @@
 - Fixed issue on my Samsung Tab S9+ where Alt+F4 was not sent to the remote client. See https://github.com/gujjwal00/avnc/issues/258
 - Fixed issue on my Samsung Tab S9+ where Ctrl+Shift was not sent to remote client. See https://github.com/gujjwal00/avnc/issues/258
 - Adjusted swipe sensitivity to allow for more fine tuning.
+- Added air actions for Samsung SPen
 
 Get ORIGINAL unmodified app below.
 
