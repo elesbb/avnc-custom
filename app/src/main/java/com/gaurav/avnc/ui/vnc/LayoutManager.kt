@@ -133,7 +133,7 @@ class LayoutManager(activity: VncActivity) {
     /************************************************************************************
      * Fullscreen
      ************************************************************************************/
-    private val fullscreenEnabled = viewModel.pref.viewer.fullscreen
+    var fullscreenEnabled = viewModel.pref.viewer.fullscreen
     private val defaultSystemBarBehaviour = insetController.systemBarsBehavior
 
     private fun updateFullscreen() {

@@ -55,7 +55,7 @@ class AppPreferences(context: Context) {
         val longPressSwipe; get() = prefs.getString("gesture_long_press_swipe", "none")!!
         val longPressSwipeEnabled; get() = (longPressSwipe != "none")
         val longPressDetectionEnabled; get() = (longPress != "none" || longPressSwipeEnabled)
-        val swipeSensitivity; get() = prefs.getInt("gesture_swipe_sensitivity", 10) / 10f
+        val swipeSensitivity; get() = prefs.getInt("gesture_swipe_sensitivity", 10).toFloat() / 1000F
         val invertVerticalScrolling; get() = prefs.getBoolean("invert_vertical_scrolling", false)
     }
 

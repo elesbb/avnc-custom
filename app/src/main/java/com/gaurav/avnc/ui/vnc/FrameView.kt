@@ -13,6 +13,7 @@ import android.content.Context
 import android.opengl.GLSurfaceView
 import android.os.Build
 import android.os.SystemClock
+import android.text.InputType
 import android.util.AttributeSet
 import android.view.KeyEvent
 import android.view.MotionEvent
@@ -49,6 +50,7 @@ class FrameView(context: Context?, attrs: AttributeSet? = null) : GLSurfaceView(
 
     private lateinit var touchHandler: TouchHandler
     private lateinit var keyHandler: KeyHandler
+    private lateinit var activity: VncActivity
 
     /**
      * Input connection used for intercepting key events
@@ -70,12 +72,30 @@ class FrameView(context: Context?, attrs: AttributeSet? = null) : GLSurfaceView(
         override fun sendKeyEvent(event: KeyEvent): Boolean {
             return keyHandler.onKeyEvent(event) || super.sendKeyEvent(event)
         }
+
+        override fun deleteSurroundingText(beforeLength: Int, afterLength: Int): Boolean {
+            val event = KeyEvent(System.currentTimeMillis(), System.currentTimeMillis(), KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DEL, 0)
+            keyHandler.onKeyEvent(event)
+            keyHandler.onKeyEvent(KeyEvent.changeAction(event, KeyEvent.ACTION_UP))
+            return true
+        }
+    }
+
+    override fun onKeyPreIme(keyCode: Int, event: KeyEvent?): Boolean {
+        if (keyCode == KeyEvent.KEYCODE_BACK && event?.action == KeyEvent.ACTION_DOWN) {
+            activity.finishAndRemoveTask()
+            return true
+        }
+        keyHandler.onKeyEvent(event!!)
+        return true
+//        return keyHandler.onKeyEvent(event!!) || super.onKeyPreIme(keyCode, event)
     }
 
     /**
      * Should be called from [VncActivity.onCreate].
      */
     fun initialize(activity: VncActivity) {
+        this.activity = activity
         val viewModel = activity.viewModel
 
         touchHandler = activity.touchHandler
@@ -94,6 +114,7 @@ class FrameView(context: Context?, attrs: AttributeSet? = null) : GLSurfaceView(
         outAttrs.imeOptions = outAttrs.imeOptions or
                 EditorInfo.IME_FLAG_NO_EXTRACT_UI or
                 EditorInfo.IME_FLAG_NO_FULLSCREEN
+        outAttrs.inputType = InputType.TYPE_NULL
         return InputConnection()
     }
 

@@ -81,10 +81,10 @@
             app:widgetLayout="@layout/help_btn" />
 
         <SeekBarPreference
-            android:max="15"
+            android:max="2500"
             app:defaultValue="10"
             app:key="gesture_swipe_sensitivity"
-            app:min="5"
+            app:updatesContinuously="true"
             app:title="@string/pref_swipe_sensitivity" />
 
         <SwitchPreference

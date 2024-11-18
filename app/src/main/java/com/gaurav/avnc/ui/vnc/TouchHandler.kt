@@ -11,8 +11,7 @@ package com.gaurav.avnc.ui.vnc
 import android.content.Context
 import android.graphics.PointF
 import android.os.Build
-import android.view.GestureDetector
-import android.view.GestureDetector.SimpleOnGestureListener
+import android.util.TypedValue
 import android.view.HapticFeedbackConstants
 import android.view.InputDevice
 import android.view.MotionEvent
@@ -24,6 +23,8 @@ import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.atan2
 import kotlin.math.max
+import kotlin.math.pow
+import kotlin.math.sqrt
 
 /**
  * Handler for touch events. It detects various gestures and notifies [dispatcher].
@@ -52,10 +53,17 @@ class TouchHandler(private val frameView: FrameView, private val dispatcher: Dis
         return onHoverEvent(event) || handleStylusEvent(event) || handleMouseEvent(event)
     }
 
+
+    private val threshold = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 3F, frameView.context.resources.displayMetrics)
+    private val scrollThresh = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 10F, frameView.context.resources.displayMetrics)
+
     fun onHoverEvent(event: MotionEvent): Boolean {
-        if (event.actionMasked == MotionEvent.ACTION_HOVER_MOVE) {
-            lastHoverPoint = event.point()
-            dispatcher.onMouseMove(lastHoverPoint)
+        val distance = sqrt((event.point().x - lastHoverPoint.x).pow(2) + (event.point().y - lastHoverPoint.y).pow(2) )
+        if ( (event.actionMasked == MotionEvent.ACTION_HOVER_MOVE) ) {
+            if (distance > threshold) {
+                lastHoverPoint = event.point()
+                dispatcher.onMouseMove(lastHoverPoint)
+            }
             return true
         }
         return false
@@ -116,7 +124,8 @@ class TouchHandler(private val frameView: FrameView, private val dispatcher: Dis
     /****************************************************************************************
      * Stylus
      ****************************************************************************************/
-    private val stylusGestureDetector = GestureDetector(frameView.context, StylusGestureListener())
+    private val stylusGestureDetector = CustomGestureDetector(frameView.context, StylusGestureListener()).apply { SetDoubleTapTimeout(ViewConfiguration.getDoubleTapTimeout()); setIsLongpressEnabled(false) }
+    private val swipeSensitivity = pref.input.gesture.swipeSensitivity
 
     private fun handleStylusEvent(event: MotionEvent): Boolean {
         if (event.isFromSource(InputDevice.SOURCE_STYLUS) &&
@@ -127,15 +136,21 @@ class TouchHandler(private val frameView: FrameView, private val dispatcher: Dis
         return false
     }
 
-    inner class StylusGestureListener : SimpleOnGestureListener() {
+    inner class StylusGestureListener : CustomGestureDetector.SimpleOnGestureListener() {
         private var scrolling = false
 
         override fun onDown(e: MotionEvent): Boolean {
             scrolling = false
+            if (dispatcher.IsFlingScrolling()) dispatcher.ShouldCancelFlingScroll(true)
             return true
         }
 
         override fun onSingleTapConfirmed(e: MotionEvent): Boolean {
+            if ( (e.buttonState and MotionEvent.BUTTON_STYLUS_PRIMARY) == MotionEvent.BUTTON_STYLUS_PRIMARY) {
+                frameView.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                dispatcher.onStylusLongPress(e.point())
+                return true
+            }
             dispatcher.onStylusTap(e.point())
             return true
         }
@@ -145,14 +160,14 @@ class TouchHandler(private val frameView: FrameView, private val dispatcher: Dis
             return true
         }
 
-        override fun onLongPress(e: MotionEvent) {
-            frameView.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-            dispatcher.onStylusLongPress(e.point())
-        }
+//        override fun onLongPress(e: MotionEvent) {
+////            frameView.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+////            dispatcher.onStylusLongPress(e.point())
+//        }
 
         override fun onScroll(e1: MotionEvent?, e2: MotionEvent, distanceX: Float, distanceY: Float): Boolean {
             // Scrolling with stylus button pressed is currently used for scale gesture
-            if (e1 != null && e2.buttonState and MotionEvent.BUTTON_STYLUS_PRIMARY == 0) {
+            if (e1 != null && (e2.buttonState and MotionEvent.BUTTON_STYLUS_PRIMARY) == 0) {
 
                 // When scrolling starts, we need to send the first event at initial touch-point.
                 // Otherwise, we will loose the small distance (touch-slope) required by onScroll().
@@ -161,8 +176,20 @@ class TouchHandler(private val frameView: FrameView, private val dispatcher: Dis
                     dispatcher.onStylusScroll(e1.point())
                 }
                 dispatcher.onStylusScroll(e2.point())
+            } else if ((e2.buttonState and MotionEvent.BUTTON_STYLUS_PRIMARY) == MotionEvent.BUTTON_STYLUS_PRIMARY) {
+                e1?.point()?.let { dispatcher.doStylusScroll(it, distanceX * swipeSensitivity * -1, distanceY * swipeSensitivity * -1) }
             }
             return true
+        }
+
+        override fun onFling(e1: MotionEvent?, e2: MotionEvent, velocityX: Float, velocityY: Float): Boolean {
+            // Only scroll when stylus primary button is pressed
+            if ( (e1?.buttonState?.and(MotionEvent.BUTTON_STYLUS_PRIMARY)) != MotionEvent.BUTTON_STYLUS_PRIMARY ) return false
+            dispatcher.onDoubleTapFling(e1.point(), velocityX * swipeSensitivity, velocityY * swipeSensitivity)
+            return true
+        }
+
+        override fun onDoubleTapFling(e1: MotionEvent?, velocityX: Float, velcoityY: Float) {
         }
     }
 
@@ -174,7 +201,7 @@ class TouchHandler(private val frameView: FrameView, private val dispatcher: Dis
     private val gestureDetector = GestureDetectorEx(frameView.context, FingerGestureListener(), pref.input.gesture.longPressDetectionEnabled)
     private val swipeVsScale = SwipeVsScale()
     private val longPressSwipeEnabled = pref.input.gesture.longPressSwipeEnabled
-    private val swipeSensitivity = pref.input.gesture.swipeSensitivity
+
 
 
     private fun handleGestureEvent(event: MotionEvent): Boolean {
@@ -193,7 +220,16 @@ class TouchHandler(private val frameView: FrameView, private val dispatcher: Dis
 
     private inner class FingerGestureListener : GestureDetectorEx.GestureListenerEx {
 
-        override fun onSingleTapConfirmed(e: MotionEvent) = dispatcher.onTap1(e.point())
+        override fun onDown(ev: MotionEvent) {
+            // Cancel fling scroll if we touch screen again
+            if (dispatcher.IsFlingScrolling()) dispatcher.ShouldCancelFlingScroll(true)
+        }
+
+        override fun onSingleTapConfirmed(e: MotionEvent) {
+            val p = e.point()
+            p.y -= 8
+            dispatcher.onTap1(p)
+        }
         override fun onDoubleTapConfirmed(e: MotionEvent) = dispatcher.onDoubleTap(e.point())
 
         override fun onMultiFingerTap(e: MotionEvent, fingerCount: Int) {
@@ -233,11 +269,17 @@ class TouchHandler(private val frameView: FrameView, private val dispatcher: Dis
         }
 
         override fun onScrollAfterDoubleTap(e1: MotionEvent, e2: MotionEvent, dx: Float, dy: Float) {
-            dispatcher.onDoubleTapSwipe(e1.point(), e2.point(), dx, dy)
+            dispatcher.onDoubleTapSwipe(e1.point(), e2.point(), dx * swipeSensitivity, dy * swipeSensitivity)
         }
 
-        override fun onFling(velocityX: Float, velocityY: Float) {
+        override fun onFling(e: MotionEvent, velocityX: Float, velocityY: Float) {
+            // Single finger single touch fling should not have anything happen unless in pan mode
             dispatcher.onFling(velocityX, velocityY)
+        }
+
+        override fun onDoubleTapFling(ev: MotionEvent, velocityX: Float, velocityY: Float) {
+            // Enable use of double tapping then flinging. Useful for remote content scrolling on a fling
+            dispatcher.onDoubleTapFling(ev.point(), velocityX * swipeSensitivity, velocityY * swipeSensitivity)
         }
     }
 
@@ -290,7 +332,11 @@ class TouchHandler(private val frameView: FrameView, private val dispatcher: Dis
             fun onScrollAfterLongPress(e1: MotionEvent, e2: MotionEvent, dx: Float, dy: Float)
             fun onScrollAfterDoubleTap(e1: MotionEvent, e2: MotionEvent, dx: Float, dy: Float)
 
-            fun onFling(velocityX: Float, velocityY: Float)
+            fun onFling(e: MotionEvent, velocityX: Float, velocityY: Float)
+
+            fun onDoubleTapFling(ev: MotionEvent, velocityX: Float, velocityY: Float)
+
+            fun onDown(ev: MotionEvent)
         }
 
 
@@ -316,9 +362,9 @@ class TouchHandler(private val frameView: FrameView, private val dispatcher: Dis
          * -                                    (double-tap)                           (double-tap-swipe)
          *
          */
-        private val innerDetector1 = GestureDetector(context, InnerListener1())
-        private val innerDetector2 = GestureDetector(context, InnerListener2()).apply { setIsLongpressEnabled(false) }
-        private val innerDetector3 = GestureDetector(context, InnerListener3()).apply { setIsLongpressEnabled(false) }
+        private val innerDetector1 = CustomGestureDetector(context, InnerListener1())
+        private val innerDetector2 = CustomGestureDetector(context, InnerListener2()).apply { setIsLongpressEnabled(false) }
+        private val innerDetector3 = CustomGestureDetector(context, InnerListener3()).apply { setIsLongpressEnabled(false) }
 
         private var longPressDetected = false
         private var doubleTapDetected = false
@@ -330,7 +376,7 @@ class TouchHandler(private val frameView: FrameView, private val dispatcher: Dis
         private val multiTapSlopSquare = 30 * 30
 
 
-        private inner class InnerListener1 : SimpleOnGestureListener() {
+        private inner class InnerListener1 : CustomGestureDetector.SimpleOnGestureListener() {
             override fun onSingleTapConfirmed(e: MotionEvent): Boolean {
                 listener.onSingleTapConfirmed(e)
                 return true
@@ -348,12 +394,21 @@ class TouchHandler(private val frameView: FrameView, private val dispatcher: Dis
             }
 
             override fun onFling(e1: MotionEvent?, e2: MotionEvent, velocityX: Float, velocityY: Float): Boolean {
-                listener.onFling(velocityX, velocityY)
+                listener.onFling(e1!!, velocityX, velocityY)
                 return true
+            }
+
+            override fun onDown(e: MotionEvent): Boolean {
+                listener.onDown(e)
+                return true
+            }
+
+            override fun onDoubleTapFling(e1: MotionEvent?, velocityX: Float, velcoityY: Float) {
+                listener.onDoubleTapFling(e1!!, velocityX, velcoityY)
             }
         }
 
-        private inner class InnerListener2 : SimpleOnGestureListener() {
+        private inner class InnerListener2 : CustomGestureDetector.SimpleOnGestureListener() {
             override fun onDoubleTap(e: MotionEvent): Boolean {
                 doubleTapDetected = true
                 return true
@@ -362,10 +417,16 @@ class TouchHandler(private val frameView: FrameView, private val dispatcher: Dis
             override fun onDoubleTapEvent(e: MotionEvent) = innerDetector3.onTouchEvent(e)
 
             override fun onScroll(e1: MotionEvent?, e2: MotionEvent, dx: Float, dy: Float) = handleScroll(e1, e2, dx, dy)
+            override fun onDoubleTapFling(e1: MotionEvent?, velocityX: Float, velcoityY: Float) {
+
+            }
         }
 
-        private inner class InnerListener3 : SimpleOnGestureListener() {
+        private inner class InnerListener3 : CustomGestureDetector.SimpleOnGestureListener() {
             override fun onScroll(e1: MotionEvent?, e2: MotionEvent, dx: Float, dy: Float) = handleScroll(e1, e2, dx, dy)
+            override fun onDoubleTapFling(e1: MotionEvent?, velocityX: Float, velcoityY: Float) {
+//                TODO("Not yet implemented")
+            }
         }
 
         private fun handleScroll(e1: MotionEvent?, e2: MotionEvent, dx: Float, dy: Float): Boolean {

@@ -17,6 +17,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.text.HtmlCompat
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
+import androidx.preference.SeekBarPreference
 import androidx.preference.SwitchPreference
 import com.gaurav.avnc.R
 import com.gaurav.avnc.util.DeviceAuthPrompt
@@ -138,6 +139,12 @@ class PrefsActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreference
             }
             invertScrollingUpdater?.onSharedPreferenceChanged(swipe1.sharedPreferences, null) //Initial update
             swipe1.sharedPreferences?.registerOnSharedPreferenceChangeListener(invertScrollingUpdater)
+
+            val sensitivitySeekBar = findPreference<SeekBarPreference>("gesture_swipe_sensitivity")
+            sensitivitySeekBar?.onPreferenceChangeListener = Preference.OnPreferenceChangeListener { _: Preference, _: Any ->
+                sensitivitySeekBar?.title = "Swipe sensitivity: ${(sensitivitySeekBar?.value?.toFloat()?.div(1000f))}"
+                return@OnPreferenceChangeListener true
+            }
 
         }
     }

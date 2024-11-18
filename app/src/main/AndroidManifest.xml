@@ -57,6 +57,7 @@
         <activity
             android:name=".ui.vnc.VncActivity"
             android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation"
+            android:windowSoftInputMode="stateAlwaysHidden"
             android:resizeableActivity="true"
             android:supportsPictureInPicture="true"
             tools:ignore="UnusedAttribute" />

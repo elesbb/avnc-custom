@@ -92,7 +92,7 @@ class VncActivity : AppCompatActivity() {
     val virtualKeys by lazy { VirtualKeys(this) }
     val toolbar by lazy { Toolbar(this, dispatcher) }
     private val serverUnlockPrompt = DeviceAuthPrompt(this)
-    private val layoutManager by lazy { LayoutManager(this) }
+    val layoutManager by lazy { LayoutManager(this) }
     private var restoredFromBundle = false
     private var wasConnectedWhenStopped = false
     private var onStartTime = 0L
@@ -105,6 +105,8 @@ class VncActivity : AppCompatActivity() {
             finish()
             return
         }
+
+        DexUtils.CaptureMeta(this, true)
 
         viewModel.initConnection()
 
@@ -207,6 +209,8 @@ class VncActivity : AppCompatActivity() {
             else
                 viewModel.serverUnlockRequest.offerResponse(true)
         }
+
+        binding.frameView.requestFocus()
     }
 
     private fun showLoginDialog() {

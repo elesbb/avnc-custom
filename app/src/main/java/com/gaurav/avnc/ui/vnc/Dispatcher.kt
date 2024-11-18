@@ -63,6 +63,14 @@ class Dispatcher(private val activity: VncActivity) {
     private val directMode = DirectMode()
     private val relativeMode = RelativeMode()
     private var config = Config()
+	
+    fun ShouldCancelFlingScroll(cancel: Boolean) {
+        directMode.ShouldCancelFlingScroll(cancel)
+    }
+
+    fun IsFlingScrolling(): Boolean {
+        return directMode.IsFlingScrolling()
+    }
 
     private inner class Config {
         val gestureStyle = viewModel.resolveGestureStyle()
@@ -145,6 +153,10 @@ class Dispatcher(private val activity: VncActivity) {
     fun onScale(scaleFactor: Float, fx: Float, fy: Float) = doScale(scaleFactor, fx, fy)
     fun onFling(vx: Float, vy: Float) = config.flingAction(vx, vy)
 
+	fun onDoubleTapFling(point: PointF, vs: Float, vy: Float) {
+        directMode.DoFlingScroll(point, vs, vy)
+    }
+	
     fun onMouseButtonDown(button: PointerButton, p: PointF) = directMode.doButtonDown(button, p)
     fun onMouseButtonUp(button: PointerButton, p: PointF) = directMode.doButtonUp(button, p)
     fun onMouseMove(p: PointF) = directMode.doMovePointer(p, 0f, 0f)
@@ -156,6 +168,8 @@ class Dispatcher(private val activity: VncActivity) {
     fun onStylusLongPress(p: PointF) = directMode.doClick(PointerButton.Right, p)
     fun onStylusScroll(p: PointF) = directMode.doButtonDown(PointerButton.Left, p)
 
+    fun doStylusScroll(sp: PointF, dx: Float, dy: Float) = directMode.doRemoteScroll(sp, dx, dy)
+	
     fun onXKey(keySym: Int, xtCode: Int, isDown: Boolean) = messenger.sendKey(keySym, xtCode, isDown)
 
     fun onGestureStyleChanged() {
@@ -181,7 +195,8 @@ class Dispatcher(private val activity: VncActivity) {
         //Used for remote scrolling
         private var accumulatedDx = 0F
         private var accumulatedDy = 0F
-        private val deltaPerScroll = 20F //For how much dx/dy, one scroll event will be sent
+        private val deltaPerScroll = 10F //For how much dy, one scroll event will be sent
+        private val deltaPerScrollHorizontal = 5F //For how much dx, one scroll event will be sent
         private val yScrollDirection = (if (gesturePref.invertVerticalScrolling) -1 else 1)
 
         abstract fun transformPoint(p: PointF): PointF?
@@ -215,19 +230,84 @@ class Dispatcher(private val activity: VncActivity) {
             doClick(button, p)
             doClick(button, p)
         }
+        private var flingCancel: Boolean = false
+        private var isFlingScrolling: Boolean = false
+
+        fun IsFlingScrolling(): Boolean {
+            return isFlingScrolling
+        }
+        fun CancelFlingScroll(): Boolean {
+            return flingCancel
+        }
+
+        fun ShouldCancelFlingScroll(cancel: Boolean) {
+            flingCancel = cancel
+        }
+
+        fun DoFlingScroll(focus: PointF, dx: Float, dy: Float) {
+            accumulatedDx += dx
+            accumulatedDy += dy * yScrollDirection
+
+            val deltaMultiplierX = 100
+            val deltaMultiplierY = 5
+
+            //Drain horizontal change
+            // Ignoring horizontal fling. Not really needed?
+//            Thread {
+//                while (abs(accumulatedDx) >= (deltaPerScrollHorizontal * deltaMultiplierX)) {
+//                    Log.e("ELESBB_SCROLL", "Horizontal scroll $accumulatedDx")
+//                    if (accumulatedDx > 0) {
+//                        doClick(PointerButton.WheelLeft, focus)
+//                        accumulatedDx -= (deltaPerScrollHorizontal * deltaMultiplierX)
+//                    } else {
+//                        doClick(PointerButton.WheelRight, focus)
+//                        accumulatedDx += (deltaPerScrollHorizontal * deltaMultiplierX)
+//                    }
+//                    Thread.sleep(10)
+//                }
+//            }.start()
+
+            //Drain vertical change
+            Thread {
+                while (abs(accumulatedDy) >= (deltaPerScroll * deltaMultiplierY)) {
+                    isFlingScrolling = true
+                    val ratio = (deltaPerScroll * deltaMultiplierY / accumulatedDy) * 1.5
+                    if (CancelFlingScroll()) {
+                        // Cancel fling scroll due to touch of stylus or finger
+                        accumulatedDx = 0F
+                        accumulatedDy = 0F
+                        isFlingScrolling = false
+                        flingCancel = false
+                        return@Thread
+                    }
+
+                    if (accumulatedDy > 0) {
+                        doClick(PointerButton.WheelUp, focus)
+                        accumulatedDy -= (deltaPerScroll * deltaMultiplierY)
+                    } else {
+                        doClick(PointerButton.WheelDown, focus)
+                        accumulatedDy += (deltaPerScroll * deltaMultiplierY)
+                    }
+                    val sleeptime = abs((400F * ratio).toLong())
+                    // Attempt to make the scrolling appear smoother
+                    Thread.sleep(sleeptime)
+                }
+                isFlingScrolling = false
+            }.start()
+        }
 
         fun doRemoteScroll(focus: PointF, dx: Float, dy: Float) {
             accumulatedDx += dx
             accumulatedDy += dy * yScrollDirection
 
             //Drain horizontal change
-            while (abs(accumulatedDx) >= deltaPerScroll) {
+            while (abs(accumulatedDx) >= deltaPerScrollHorizontal) {
                 if (accumulatedDx > 0) {
                     doClick(PointerButton.WheelLeft, focus)
-                    accumulatedDx -= deltaPerScroll
+                    accumulatedDx -= deltaPerScrollHorizontal
                 } else {
                     doClick(PointerButton.WheelRight, focus)
-                    accumulatedDx += deltaPerScroll
+                    accumulatedDx += deltaPerScrollHorizontal
                 }
             }
 
@@ -248,7 +328,7 @@ class Dispatcher(private val activity: VncActivity) {
          * [vs] Movement of vertical scroll wheel
          */
         fun doRemoteScrollFromMouse(p: PointF, hs: Float, vs: Float) {
-            doRemoteScroll(p, hs * deltaPerScroll, vs * deltaPerScroll)
+            doRemoteScroll(p, hs * deltaPerScrollHorizontal, vs * deltaPerScroll)
         }
     }
 

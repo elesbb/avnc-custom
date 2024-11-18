@@ -15,6 +15,7 @@ import android.view.GestureDetector
 import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
+import android.view.WindowInsets
 import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.annotation.StringRes
@@ -22,6 +23,7 @@ import androidx.core.view.GravityCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.drawerlayout.widget.DrawerLayout
+import androidx.drawerlayout.widget.DrawerLayout.DrawerListener
 import com.gaurav.avnc.R
 import com.gaurav.avnc.viewmodel.VncViewModel.State
 import com.gaurav.avnc.viewmodel.VncViewModel.State.Companion.isConnected
@@ -79,6 +81,7 @@ class Toolbar(private val activity: VncActivity, private val dispatcher: Dispatc
         setupGestureStyleSelection()
         setupGestureExclusionRect()
         setupDrawerCloseOnScrimSwipe()
+        SetupDrawerListener()
     }
 
     fun open() {
@@ -147,6 +150,45 @@ class Toolbar(private val activity: VncActivity, private val dispatcher: Dispatc
                 dispatcher.onGestureStyleChanged()
                 close()
             }
+        }
+    }
+
+    private fun SetupDrawerListener() {
+        // Setup a drawer listener to detect opening and closing of side panel.
+        // This is used to show or hide the status bar/ navigation bar when the sidebar is opened
+        activity.binding.drawerLayout.addDrawerListener( object : DrawerListener {
+            override fun onDrawerClosed(drawerView: View) {
+                HideSystemBars()
+            }
+
+            override fun onDrawerStateChanged(newState: Int) {
+            }
+
+            override fun onDrawerSlide(drawerView: View, slideOffset: Float) {
+            }
+
+            override fun onDrawerOpened(drawerView: View) {
+                ShowSystemBars()
+            }
+        })
+    }
+
+    private fun ShowSystemBars() {
+        activity.layoutManager.fullscreenEnabled = false
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            activity.window.insetsController.show(WindowInsets.Type.systemBars())
+        } else {
+            activity.window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_VISIBLE
+        }
+
+    }
+
+    private fun HideSystemBars() {
+        activity.layoutManager.fullscreenEnabled = true
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            activity.window.insetsController.hide(WindowInsets.Type.systemBars())
+        } else {
+            activity.window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_FULLSCREEN or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
         }
     }
 
