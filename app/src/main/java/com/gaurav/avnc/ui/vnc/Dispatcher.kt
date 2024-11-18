@@ -9,6 +9,7 @@
 package com.gaurav.avnc.ui.vnc
 
 import android.graphics.PointF
+import android.os.Build
 import com.gaurav.avnc.viewmodel.VncViewModel
 import com.gaurav.avnc.vnc.Messenger
 import com.gaurav.avnc.vnc.PointerButton
@@ -156,6 +157,19 @@ class Dispatcher(private val activity: VncActivity) {
 	fun onDoubleTapFling(point: PointF, vs: Float, vy: Float) {
         directMode.DoFlingScroll(point, vs, vy)
     }
+
+    fun DoAirAction(action: String) {
+
+//        val swipeSensitivity = pref.input.gesture.swipeSensitivity
+        when (action) {
+            "scroll_up" -> {
+                directMode.DoFlingScroll(directMode.lastPoint, 0F, 2000F)
+            }
+            "scroll_down" -> {
+                directMode.DoFlingScroll(directMode.lastPoint, 0F, -2000F)
+            }
+        }
+    }
 	
     fun onMouseButtonDown(button: PointerButton, p: PointF) = directMode.doButtonDown(button, p)
     fun onMouseButtonUp(button: PointerButton, p: PointF) = directMode.doButtonUp(button, p)
@@ -199,6 +213,8 @@ class Dispatcher(private val activity: VncActivity) {
         private val deltaPerScrollHorizontal = 5F //For how much dx, one scroll event will be sent
         private val yScrollDirection = (if (gesturePref.invertVerticalScrolling) -1 else 1)
 
+        var lastPoint: PointF = PointF(0F, 0F)
+
         abstract fun transformPoint(p: PointF): PointF?
         abstract fun doMovePointer(p: PointF, dx: Float, dy: Float)
         abstract fun doRemoteDrag(button: PointerButton, p: PointF, dx: Float, dy: Float)
@@ -207,6 +223,9 @@ class Dispatcher(private val activity: VncActivity) {
         open fun onGestureStop(p: PointF) = doButtonRelease(p)
 
         fun doButtonDown(button: PointerButton, p: PointF) {
+            lastPoint.x = p.x
+            lastPoint.y = p.y
+
             transformPoint(p)?.let { messenger.sendPointerButtonDown(button, it) }
         }
 

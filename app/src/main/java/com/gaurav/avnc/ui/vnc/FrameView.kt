@@ -15,6 +15,7 @@ import android.os.Build
 import android.os.SystemClock
 import android.text.InputType
 import android.util.AttributeSet
+import android.util.Log
 import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.PointerIcon
@@ -82,6 +83,7 @@ class FrameView(context: Context?, attrs: AttributeSet? = null) : GLSurfaceView(
     }
 
     override fun onKeyPreIme(keyCode: Int, event: KeyEvent?): Boolean {
+
         if (keyCode == KeyEvent.KEYCODE_BACK && event?.action == KeyEvent.ACTION_DOWN) {
             activity.finishAndRemoveTask()
             return true

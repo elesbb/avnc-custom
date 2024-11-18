@@ -60,7 +60,15 @@
             android:windowSoftInputMode="stateAlwaysHidden"
             android:resizeableActivity="true"
             android:supportsPictureInPicture="true"
-            tools:ignore="UnusedAttribute" />
+            tools:ignore="UnusedAttribute"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.samsung.android.support.REMOTE_ACTION" />
+            </intent-filter>
+
+            <meta-data android:name="com.samsung.android.support.REMOTE_ACTION"
+                android:resource="@xml/air_action_commands" />
+        </activity>
 
         <activity
             android:name=".ui.vnc.IntentReceiverActivity"

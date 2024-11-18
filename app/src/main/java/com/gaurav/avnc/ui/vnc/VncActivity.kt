@@ -18,6 +18,7 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Parcelable
 import android.os.SystemClock
+import android.text.method.MetaKeyKeyListener
 import android.util.Log
 import android.util.Rational
 import android.view.InputDevice
@@ -390,6 +391,16 @@ class VncActivity : AppCompatActivity() {
      ************************************************************************************/
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
+        if (keyCode == KeyEvent.KEYCODE_F1 && (event.metaState and KeyEvent.META_CTRL_LEFT_ON) == KeyEvent.META_CTRL_LEFT_ON
+            && (event.metaState and KeyEvent.META_SHIFT_LEFT_ON) == KeyEvent.META_SHIFT_LEFT_ON) {
+            dispatcher.DoAirAction("scroll_up")
+            return true
+        }
+
+        if (keyCode == KeyEvent.KEYCODE_F1 && (event.metaState and (KeyEvent.META_CTRL_LEFT_ON or KeyEvent.META_ALT_LEFT_ON)) == (KeyEvent.META_CTRL_LEFT_ON or KeyEvent.META_ALT_LEFT_ON)) {
+            dispatcher.DoAirAction("scroll_down")
+            return true
+        }
         return keyHandler.onKeyEvent(event) || workarounds(event) || super.onKeyDown(keyCode, event)
     }
 
